@@ -47,6 +47,8 @@ const state = {
   },
 };
 
+const lightbox = createLightbox();
+
 init().catch((error) => {
   showStatus(elements.globalStatus, error.message, "error");
 });
@@ -253,6 +255,9 @@ function renderCatalog(properties) {
     }
 
     updateCardImage();
+    image.addEventListener("click", () => {
+      openLightbox(imageUrls, currentImageIndex, property.title);
+    });
 
     if (imageUrls.length > 1) {
       prevImageButton.classList.remove("hidden");
@@ -439,6 +444,142 @@ function escapeHtml(value) {
 function placeholderImage(label) {
   const safeLabel = encodeURIComponent(label || "Sem imagem");
   return `data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='420'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%230f8f8d' offset='0'/%3E%3Cstop stop-color='%23e67e22' offset='1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='640' height='420' fill='url(%23g)'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='white' font-family='Outfit,sans-serif' font-size='30'%3E${safeLabel}%3C/text%3E%3C/svg%3E`;
+}
+
+function createLightbox() {
+  const root = document.createElement("div");
+  root.className = "lightbox hidden";
+  root.innerHTML = `
+    <div class="lightbox-backdrop" data-lightbox-action="close"></div>
+    <div class="lightbox-content">
+      <button type="button" class="lightbox-close" data-lightbox-action="close" aria-label="Fechar imagem">&times;</button>
+      <button type="button" class="lightbox-nav lightbox-prev hidden" data-lightbox-action="prev" aria-label="Imagem anterior">&#10094;</button>
+      <img class="lightbox-image" src="" alt="Imagem ampliada do imovel">
+      <button type="button" class="lightbox-nav lightbox-next hidden" data-lightbox-action="next" aria-label="Proxima imagem">&#10095;</button>
+      <span class="lightbox-caption"></span>
+      <span class="lightbox-count hidden"></span>
+    </div>
+  `;
+
+  document.body.appendChild(root);
+
+  const image = root.querySelector(".lightbox-image");
+  const caption = root.querySelector(".lightbox-caption");
+  const count = root.querySelector(".lightbox-count");
+  const prevButton = root.querySelector(".lightbox-prev");
+  const nextButton = root.querySelector(".lightbox-next");
+
+  root.addEventListener("click", (event) => {
+    const actionTarget = event.target.closest("[data-lightbox-action]");
+    if (!actionTarget) return;
+
+    const action = actionTarget.dataset.lightboxAction;
+    if (action === "close") closeLightbox();
+    if (action === "prev") showPreviousLightboxImage();
+    if (action === "next") showNextLightboxImage();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (root.classList.contains("hidden")) return;
+
+    if (event.key === "Escape") {
+      closeLightbox();
+      return;
+    }
+
+    if (event.key === "ArrowLeft") {
+      showPreviousLightboxImage();
+      return;
+    }
+
+    if (event.key === "ArrowRight") {
+      showNextLightboxImage();
+    }
+  });
+
+  let touchStartX = null;
+  image.addEventListener(
+    "touchstart",
+    (event) => {
+      touchStartX = event.changedTouches[0].clientX;
+    },
+    { passive: true },
+  );
+
+  image.addEventListener(
+    "touchend",
+    (event) => {
+      if (touchStartX === null) return;
+
+      const touchEndX = event.changedTouches[0].clientX;
+      const deltaX = touchEndX - touchStartX;
+      touchStartX = null;
+
+      if (Math.abs(deltaX) < 40) return;
+
+      if (deltaX < 0) {
+        showNextLightboxImage();
+      } else {
+        showPreviousLightboxImage();
+      }
+    },
+    { passive: true },
+  );
+
+  return {
+    root,
+    image,
+    caption,
+    count,
+    prevButton,
+    nextButton,
+    images: [],
+    currentIndex: 0,
+    title: "",
+  };
+}
+
+function openLightbox(imageUrls, startIndex, title) {
+  lightbox.images = imageUrls;
+  lightbox.currentIndex = Math.max(0, Math.min(startIndex, imageUrls.length - 1));
+  lightbox.title = title || "Imagem do imovel";
+
+  renderLightbox();
+  lightbox.root.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
+
+function closeLightbox() {
+  lightbox.root.classList.add("hidden");
+  document.body.style.overflow = "";
+}
+
+function renderLightbox() {
+  if (lightbox.images.length === 0) return;
+
+  const total = lightbox.images.length;
+  lightbox.image.src = lightbox.images[lightbox.currentIndex];
+  lightbox.image.alt = `Imagem ${lightbox.currentIndex + 1} de ${total} de ${lightbox.title}`;
+  lightbox.caption.textContent = lightbox.title;
+  lightbox.count.textContent = `${lightbox.currentIndex + 1}/${total}`;
+
+  const canNavigate = total > 1;
+  lightbox.prevButton.classList.toggle("hidden", !canNavigate);
+  lightbox.nextButton.classList.toggle("hidden", !canNavigate);
+  lightbox.count.classList.toggle("hidden", !canNavigate);
+}
+
+function showPreviousLightboxImage() {
+  if (lightbox.images.length <= 1) return;
+  lightbox.currentIndex =
+    (lightbox.currentIndex - 1 + lightbox.images.length) % lightbox.images.length;
+  renderLightbox();
+}
+
+function showNextLightboxImage() {
+  if (lightbox.images.length <= 1) return;
+  lightbox.currentIndex = (lightbox.currentIndex + 1) % lightbox.images.length;
+  renderLightbox();
 }
 
 function showStatus(target, message, type = "info") {
