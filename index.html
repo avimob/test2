@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
@@ -77,7 +77,10 @@
   <template id="property-card-template">
     <article class="property-card">
       <div class="property-image-wrap">
+        <button type="button" class="property-nav property-nav-prev hidden" aria-label="Imagem anterior">&#10094;</button>
         <img class="property-image" src="" alt="">
+        <button type="button" class="property-nav property-nav-next hidden" aria-label="Proxima imagem">&#10095;</button>
+        <span class="property-image-indicator hidden" aria-live="polite"></span>
       </div>
       <div class="property-body">
         <p class="property-price"></p>
