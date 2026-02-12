@@ -254,6 +254,7 @@ textarea {
 .property-image-wrap {
   position: relative;
   overflow: hidden;
+  touch-action: pan-y;
 }
 
 .property-image {
@@ -265,6 +266,49 @@ textarea {
 
 .property-card:hover .property-image {
   transform: scale(1.04);
+}
+
+.property-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: #fff;
+  background: rgba(23, 32, 38, 0.58);
+  cursor: pointer;
+  z-index: 2;
+}
+
+.property-nav:hover {
+  background: rgba(23, 32, 38, 0.78);
+}
+
+.property-nav-prev {
+  left: 8px;
+}
+
+.property-nav-next {
+  right: 8px;
+}
+
+.property-image-indicator {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 2;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #fff;
+  border-radius: 999px;
+  background: rgba(23, 32, 38, 0.58);
+  padding: 3px 8px;
 }
 
 .property-body {
