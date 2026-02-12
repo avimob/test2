@@ -1,0 +1,3 @@
+window.SUPABASE_URL = "https://pauwhynaryzfgnrglejp.supabase.co";
+window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhdXdoeW5hcnl6ZmducmdsZWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5MzE1MTAsImV4cCI6MjA4NjUwNzUxMH0.Fwx3WURxP_6-RJNrK13-aXaUCm53bhEH6u6LF76PISA";
+window.SUPABASE_STORAGE_BUCKET = "property-images";
