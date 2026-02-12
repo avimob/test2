@@ -261,9 +261,71 @@ function renderCatalog(properties) {
     const card = node.querySelector(".property-card");
     card.style.animationDelay = `${Math.min(index * 45, 280)}ms`;
 
+    const imageWrap = node.querySelector(".property-image-wrap");
     const image = node.querySelector(".property-image");
-    image.src = getPropertyCoverUrl(property);
-    image.alt = `Foto principal de ${property.title}`;
+    const prevImageButton = node.querySelector(".property-nav-prev");
+    const nextImageButton = node.querySelector(".property-nav-next");
+    const imageIndicator = node.querySelector(".property-image-indicator");
+    const imageUrls = getPropertyImageUrls(property);
+    let currentImageIndex = 0;
+
+    function updateCardImage() {
+      image.src = imageUrls[currentImageIndex];
+      image.alt = `Foto ${currentImageIndex + 1} de ${imageUrls.length} de ${property.title}`;
+      imageIndicator.textContent = `${currentImageIndex + 1}/${imageUrls.length}`;
+    }
+
+    function showPreviousImage() {
+      currentImageIndex =
+        (currentImageIndex - 1 + imageUrls.length) % imageUrls.length;
+      updateCardImage();
+    }
+
+    function showNextImage() {
+      currentImageIndex = (currentImageIndex + 1) % imageUrls.length;
+      updateCardImage();
+    }
+
+    updateCardImage();
+
+    if (imageUrls.length > 1) {
+      prevImageButton.classList.remove("hidden");
+      nextImageButton.classList.remove("hidden");
+      imageIndicator.classList.remove("hidden");
+
+      prevImageButton.addEventListener("click", showPreviousImage);
+      nextImageButton.addEventListener("click", showNextImage);
+
+      let touchStartX = null;
+
+      imageWrap.addEventListener(
+        "touchstart",
+        (event) => {
+          touchStartX = event.changedTouches[0].clientX;
+        },
+        { passive: true },
+      );
+
+      imageWrap.addEventListener(
+        "touchend",
+        (event) => {
+          if (touchStartX === null) return;
+
+          const touchEndX = event.changedTouches[0].clientX;
+          const deltaX = touchEndX - touchStartX;
+          touchStartX = null;
+
+          if (Math.abs(deltaX) < 35) return;
+
+          if (deltaX < 0) {
+            showNextImage();
+          } else {
+            showPreviousImage();
+          }
+        },
+        { passive: true },
+      );
+    }
 
     node.querySelector(".property-price").textContent = formatCurrency(property.price);
     node.querySelector(".property-title").textContent = property.title;
@@ -674,6 +736,11 @@ async function uploadCompressedImage(file, propertyId) {
   });
 
   if (error) {
+    if (/bucket.+not found/i.test(error.message || "")) {
+      throw new Error(
+        `Bucket "${STORAGE_BUCKET}" nao encontrado. Crie esse bucket no Supabase Storage ou ajuste SUPABASE_STORAGE_BUCKET em supabase-config.js.`,
+      );
+    }
     throw new Error(`Falha no upload da imagem: ${error.message}`);
   }
 
@@ -874,10 +941,28 @@ function normalizeProperty(row) {
   };
 }
 
-function getPropertyCoverUrl(property) {
-  const coverPath = property.cover_image || property.image_paths[0];
-  if (!coverPath) return placeholderImage(property.title);
-  return toPublicImageUrl(coverPath);
+function getPropertyImageUrls(property) {
+  const imagePaths = Array.isArray(property.image_paths)
+    ? property.image_paths.filter(Boolean)
+    : [];
+  const orderedPaths = [...imagePaths];
+
+  if (property.cover_image) {
+    const coverIndex = orderedPaths.indexOf(property.cover_image);
+    if (coverIndex >= 0) {
+      orderedPaths.splice(coverIndex, 1);
+    }
+    orderedPaths.unshift(property.cover_image);
+  }
+
+  const uniquePaths = [...new Set(orderedPaths)];
+  const urls = uniquePaths.map((path) => toPublicImageUrl(path));
+
+  if (urls.length === 0) {
+    return [placeholderImage(property.title)];
+  }
+
+  return urls;
 }
 
 function toPublicImageUrl(pathOrUrl) {
